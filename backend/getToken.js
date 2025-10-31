@@ -2,18 +2,16 @@ import fs from "fs";
 import readline from "readline";
 import { google } from "googleapis";
 
-// If modifying scopes, delete token.json and re-run this script
 const SCOPES = ["https://www.googleapis.com/auth/gmail.send"];
 const TOKEN_PATH = "token.json";
 
-// Load client secrets from credentials.json
 fs.readFile("credentials.json", async (err, content) => {
     if (err) return console.error("Error loading client secret file:", err);
     await authorize(JSON.parse(content));
 });
 
 async function authorize(credentials) {
-    
+
     const data = credentials.installed || credentials.web;
     const { client_secret, client_id, redirect_uris } = data;
 
@@ -23,7 +21,6 @@ async function authorize(credentials) {
         redirect_uris[0]
     );
 
-    // Check for existing token
     if (fs.existsSync(TOKEN_PATH)) {
         console.log("✅ Token already exists at", TOKEN_PATH);
         return;

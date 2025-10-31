@@ -1,7 +1,10 @@
+
+
 import express from "express";
 import Contact from "../models/Contact.js";
 import { appendToSheet } from "../services/googleSheets.js";
 import { sendGmailViaAPI } from "../services/gmail.js";
+import { buildHtmlTemplate } from "../services/buildHtmlTemplate.js";
 
 const router = express.Router();
 
@@ -20,9 +23,12 @@ router.post("/", async (req, res) => {
     } = req.body;
 
     if (!name || !email || !details || !contactMode) {
-      return res.status(400).json({ success: false, error: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Missing required fields" });
     }
 
+    // Save to MongoDB
     const contact = new Contact({
       name,
       email,
@@ -36,6 +42,7 @@ router.post("/", async (req, res) => {
     });
     await contact.save();
 
+    // Push to Google Sheet
     const sheetValues = [
       name,
       email,
@@ -50,6 +57,7 @@ router.post("/", async (req, res) => {
     ];
     await appendToSheet("contact", sheetValues);
 
+    // Build email rows
     const rows = [
       ["Name", name],
       ["Email", email],
@@ -62,19 +70,46 @@ router.post("/", async (req, res) => {
       ["Meeting Link", meetingLink || "N/A"],
     ];
 
-    const adminHtml = (await import("../services/gmail.js")).buildHtmlTemplate
-      ? (await import("../services/gmail.js")).buildHtmlTemplate({ title: "New Contact Form Submission", introLines: [], rows, logoUrl: "https://loopera.tech/logo-1.png" })
-      : `<div>${rows.map(r => `<p><strong>${r[0]}:</strong> ${r[1]}</p>`).join("")}</div>`;
+    // Admin email
+    const adminHtml = buildHtmlTemplate({
+      title: "New Contact Form Submission",
+      introLines: [],
+      rows,
+      logoUrl: "https://loopera.tech/logo-1.png",
+    });
 
-    const userHtml = (await import("../services/gmail.js")).buildHtmlTemplate
-      ? (await import("../services/gmail.js")).buildHtmlTemplate({ title: "Thanks for contacting Loopera", introLines: [`Hi ${name},`, "We’ve received your message and will get back to you shortly."], rows: [["Message", details], ["Contact Mode", contactMode]], logoUrl: "https://loopera.tech/logo-1.png" })
-      : `<p>Hi ${name}, thanks. We got your message.</p>`;
+    // User confirmation email
+    const userHtml = buildHtmlTemplate({
+      title: "Thanks for contacting Loopera",
+      introLines: [
+        `Hi ${name},`,
+        "We’ve received your message and will get back to you shortly.",
+      ],
+      rows: [
+        ["Message", details],
+        ["Contact Mode", contactMode],
+      ],
+      logoUrl: "https://loopera.tech/logo-1.png",
+    });
 
-    // send admin and user emails
-    await sendGmailViaAPI({ to: process.env.REPLY_TO_EMAIL || process.env.SENDER_EMAIL, subject: "New Contact Form Submission", html: adminHtml, logoUrl: "https://loopera.tech/logo-1.png" });
-    await sendGmailViaAPI({ to: email, subject: "We Received Your Message", html: userHtml, logoUrl: "https://loopera.tech/logo-1.png" });
+    // Send emails
+    await sendGmailViaAPI({
+      to: process.env.REPLY_TO_EMAIL || process.env.SENDER_EMAIL,
+      subject: "New Contact Form Submission",
+      html: adminHtml,
+    });
 
-    res.json({ success: true, message: "Contact form submitted successfully", data: contact });
+    await sendGmailViaAPI({
+      to: email,
+      subject: "We Received Your Message",
+      html: userHtml,
+    });
+
+    res.json({
+      success: true,
+      message: "Contact form submitted successfully",
+      data: contact,
+    });
   } catch (err) {
     console.error("Error in contact route:", err);
     res.status(500).json({ success: false, error: err.message });

@@ -5,9 +5,7 @@ import {
   submitConsultationFailure,
 } from "../actions/consultationActions";
 
-// ✅ Automatically switch between local + production API
 const API_BASE_URL = "https://loopera-tech.onrender.com";
-// const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://loopera-tech.onrender.com";
 
 
 function* submitConsultationSaga(action) {

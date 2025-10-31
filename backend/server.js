@@ -18,6 +18,7 @@ const app = express();
 // ✅ Define allowed origins
 const allowedOrigins = [
   "https://loopera.tech",
+  "http://localhost:3000",
   "https://looperatechnologies.netlify.app"
 ];
 

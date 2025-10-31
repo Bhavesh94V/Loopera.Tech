@@ -2,6 +2,9 @@ import express from "express";
 import Consultation from "../models/Consultation.js";
 import { appendToSheet } from "../services/googleSheets.js";
 import { sendGmailViaAPI } from "../services/gmail.js";
+import { buildHtmlTemplate } from "../services/buildHtmlTemplate.js";
+
+
 
 const router = express.Router();
 
@@ -66,13 +69,28 @@ router.post("/", async (req, res) => {
       ["Contact Method", contactMethod],
     ];
 
-    const adminHtml = (await import("../services/gmail.js")).buildHtmlTemplate
-      ? (await import("../services/gmail.js")).buildHtmlTemplate({ title: "New Consultation Request", introLines: [], rows, logoUrl: "https://loopera.tech/logo-1.png" })
-      : `<div>${rows.map(r => `<p><strong>${r[0]}:</strong> ${r[1]}</p>`).join("")}</div>`;
+   
 
-    const userHtml = (await import("../services/gmail.js")).buildHtmlTemplate
-      ? (await import("../services/gmail.js")).buildHtmlTemplate({ title: "Consultation Request Received", introLines: [`Hi ${fullName},`, "We’ve received your consultation request. Our team will reach out soon."], rows: [["Service", service], ["Preferred Contact", contactMethod]], logoUrl: "https://loopera.tech/logo-1.png" })
-      : `<p>Hi ${fullName}, thanks. We got your consultation request.</p>`;
+    const adminHtml = buildHtmlTemplate({
+      title: "New Consultation Request",
+      introLines: [],
+      rows,
+      logoUrl: "https://loopera.tech/logo-1.png"
+    });
+
+    const userHtml = buildHtmlTemplate({
+      title: "Consultation Request Received",
+      introLines: [
+        `Hi ${fullName},`,
+        "We’ve received your consultation request. Our team will reach out soon."
+      ],
+      rows: [
+        ["Service", service],
+        ["Preferred Contact", contactMethod]
+      ],
+      logoUrl: "https://loopera.tech/logo-1.png"
+    });
+
 
     await sendGmailViaAPI({ to: process.env.REPLY_TO_EMAIL || process.env.SENDER_EMAIL, subject: "New Consultation Request", html: adminHtml, logoUrl: "https://loopera.tech/logo-1.png" });
     await sendGmailViaAPI({ to: email, subject: "Consultation Request Received", html: userHtml, logoUrl: "https://loopera.tech/logo-1.png" });
