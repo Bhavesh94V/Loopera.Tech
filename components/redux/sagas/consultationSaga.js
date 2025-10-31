@@ -1,13 +1,17 @@
-import { call, put, takeEvery } from "redux-saga/effects"
+import { call, put, takeEvery } from "redux-saga/effects";
 import {
   SUBMIT_CONSULTATION_REQUEST,
   submitConsultationSuccess,
   submitConsultationFailure,
-} from "../actions/consultationActions"
+} from "../actions/consultationActions";
+
+// ✅ Automatically switch between local + production API
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://loopera-tech.onrender.com";
+
 
 function* submitConsultationSaga(action) {
   try {
-    const response = yield call(fetch, "http://localhost:5000/api/consultation", {
+    const response = yield call(fetch, `${API_BASE_URL}/api/consultation`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -24,20 +28,23 @@ function* submitConsultationSaga(action) {
         callTime: action.payload.preferredTime,
         contactMethod: action.payload.contactMethod,
       }),
-    })
+    });
 
-    const data = yield call([response, response.json])
+    const data = yield call([response, response.json]);
 
-    if (data.success) {
-      yield put(submitConsultationSuccess(data))
-    } else {
-      yield put(submitConsultationFailure(data.error))
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to send consultation request");
     }
+
+    // ✅ If backend returns success
+    yield put(submitConsultationSuccess(data));
+    console.log("✅ Consultation form submitted successfully:", data);
   } catch (error) {
-    yield put(submitConsultationFailure(error.message))
+    console.error("❌ Consultation form submission failed:", error);
+    yield put(submitConsultationFailure(error.message));
   }
 }
 
 export function* consultationSaga() {
-  yield takeEvery(SUBMIT_CONSULTATION_REQUEST, submitConsultationSaga)
+  yield takeEvery(SUBMIT_CONSULTATION_REQUEST, submitConsultationSaga);
 }
