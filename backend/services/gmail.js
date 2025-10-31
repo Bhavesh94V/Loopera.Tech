@@ -146,24 +146,21 @@ export const sendGmailViaAPI = async ({ to, subject, html, logoUrl }) => {
   if (!subject) throw new Error("Missing `subject`");
 
   const {
-    CLIENT_ID,
-    CLIENT_SECRET,
-    REDIRECT_URI,
-    REFRESH_TOKEN,
+    GMAIL_CLIENT_ID,
+    GMAIL_CLIENT_SECRET,
+    GMAIL_REFRESH_TOKEN,
     SENDER_EMAIL,
     REPLY_TO_EMAIL,
   } = process.env;
 
-  if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI || !REFRESH_TOKEN)
+  // ✅ Only check the actual keys you have in .env
+  if (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN || !SENDER_EMAIL) {
     throw new Error("Missing Gmail API environment variables");
+  }
 
-  const oAuth2Client = new google.auth.OAuth2(
-    CLIENT_ID,
-    CLIENT_SECRET,
-    REDIRECT_URI
-  );
-
-  oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+  // OAuth2 setup (Redirect URI is optional in production since token already generated)
+  const oAuth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET);
+  oAuth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN });
 
   const gmail = google.gmail({ version: "v1", auth: oAuth2Client });
 
