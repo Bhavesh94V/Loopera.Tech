@@ -14,7 +14,29 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, ".env") });
 
 const app = express();
-app.use(cors());
+
+// ✅ Define allowed origins
+const allowedOrigins = [
+  "https://loopera.tech",
+  "https://looperatechnologies.netlify.app"
+];
+
+// ✅ Configure CORS
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("❌ Not allowed by CORS"));
+      }
+    },
+    credentials: true, 
+  })
+);
+
 app.use(express.json());
 
 mongoose
