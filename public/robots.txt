@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://loopera.tech/
+
+# Sitemaps
+Sitemap: https://loopera.tech/sitemap.xml
